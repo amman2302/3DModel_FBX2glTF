@@ -96,6 +96,17 @@ function convert(srcFile, destFile, opts = []) {
         throw new Error('Invalid source path: path traversal outside working directory detected');
       }
       let srcPath = fs.realpathSync(resolvedSrcFile);
+      // Validate destFile against the allowed working-directory boundary before
+      // resolving it, so an attacker cannot supply a path such as
+      // "../../etc/output.gltf" to write to arbitrary filesystem locations.
+      const resolvedDestFileCheck = path.resolve(destFile);
+      const allowedDestBase = path.resolve(process.cwd());
+      if (
+        !resolvedDestFileCheck.startsWith(allowedDestBase + path.sep) &&
+        resolvedDestFileCheck !== allowedDestBase
+      ) {
+        throw new Error('Invalid destination path: path traversal outside working directory detected');
+      }
       // Resolve the destination directory to a real, absolute path so any
       // symlinks and ".." segments are fully expanded before we use it as a
       // traversal boundary.  Using realpathSync here is intentional: it
