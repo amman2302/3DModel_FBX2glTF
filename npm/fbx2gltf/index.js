@@ -65,6 +65,9 @@ function convert(srcFile, destFile, opts = []) {
       let destDir = fs.realpathSync(path.dirname(destFile));
       let destFilename = path.basename(destFile, path.extname(destFile)) + destExt;
       let destPath = path.join(destDir, destFilename);
+      if (!path.resolve(destPath).startsWith(destDir + path.sep)) {
+        throw new Error('Invalid destination path: path traversal detected');
+      }
 
       let args = opts.slice(0);
       args.push('--input', srcPath, '--output', destPath);
