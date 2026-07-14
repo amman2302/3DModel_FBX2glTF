@@ -47,10 +47,13 @@ function convert(srcFile, destFile, opts = []) {
           throw new Error('Invalid source filename: path traversal detected')
         }
         const resolvedDestDir = path.resolve(destFile)
-        destFile = path.join(resolvedDestDir, srcFilename + destExt)
-        if (!path.resolve(destFile).startsWith(resolvedDestDir + path.sep)) {
+        // Resolve the candidate destination path and confirm it stays inside
+        // resolvedDestDir before accepting it — this is the primary traversal guard.
+        const candidateDestFile = path.resolve(resolvedDestDir, srcFilename + destExt)
+        if (!candidateDestFile.startsWith(resolvedDestDir + path.sep)) {
           throw new Error('Invalid destination path: path traversal detected')
         }
+        destFile = candidateDestFile
       }
 
       if (destExt !== '.glb' && destExt !== '.gltf') {
