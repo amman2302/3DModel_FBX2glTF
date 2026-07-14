@@ -52,11 +52,16 @@ function convert(srcFile, destFile, opts = []) {
         // Step 3: Resolve the destination directory to an absolute path so the
         // boundary check below is reliable.
         const resolvedDestDir = path.resolve(destFile)
-        destFile = path.join(resolvedDestDir, srcFilename + destExt)
-        // Step 4: Defence-in-depth — confirm the resolved path stays within destDir.
-        if (!path.resolve(destFile).startsWith(resolvedDestDir + path.sep)) {
+        // Step 4: Build the candidate path and immediately verify it is strictly
+        // contained within resolvedDestDir.  Using path.resolve() on the joined
+        // result neutralises any residual ".." segments, and the path.sep suffix
+        // on the allowed prefix ensures a directory named "destDirExtra" cannot
+        // pass a plain startsWith("destDir") check.
+        const candidateDestFile = path.resolve(path.join(resolvedDestDir, srcFilename + destExt))
+        if (!candidateDestFile.startsWith(resolvedDestDir + path.sep)) {
           throw new Error('Invalid destination path: path traversal detected')
         }
+        destFile = candidateDestFile
       }
 
       if (destExt !== '.glb' && destExt !== '.gltf') {
@@ -83,12 +88,15 @@ function convert(srcFile, destFile, opts = []) {
       if (!destFilename || /^\.+$/.test(destFilename)) {
         throw new Error('Invalid destination filename: path traversal detected');
       }
-      let destPath = path.join(resolvedDestDir, destFilename);
-      const resolvedDestPath = path.resolve(destPath);
-      if (resolvedDestPath !== resolvedDestDir &&
-          !resolvedDestPath.startsWith(resolvedDestDir + path.sep)) {
+      // Resolve the joined path immediately so any residual ".." segments are
+      // neutralised before the boundary check.  The candidate must be strictly
+      // *inside* resolvedDestDir (i.e. start with the dir + separator), never
+      // equal to it, because we expect a file path, not the directory itself.
+      const resolvedDestPath = path.resolve(path.join(resolvedDestDir, destFilename));
+      if (!resolvedDestPath.startsWith(resolvedDestDir + path.sep)) {
         throw new Error('Invalid destination path: path traversal detected');
       }
+      let destPath = resolvedDestPath;
 
       let args = opts.slice(0);
       args.push('--input', srcPath, '--output', destPath);
