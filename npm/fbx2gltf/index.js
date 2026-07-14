@@ -52,6 +52,7 @@ function convert(srcFile, destFile, opts = []) {
         if (!path.resolve(destFile).startsWith(resolvedDestDir + path.sep)) {
           throw new Error('Invalid destination path: path traversal detected')
         }
+        destFile = candidateDestFile
       }
 
       if (destExt !== '.glb' && destExt !== '.gltf') {
