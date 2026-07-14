@@ -88,6 +88,12 @@ function convert(srcFile, destFile, opts = []) {
       if (!destFilename || /^\.+$/.test(destFilename)) {
         throw new Error('Invalid destination filename: path traversal detected');
       }
+      // Allowlist validation — only permit safe filename characters
+      // (alphanumerics, dots, hyphens, underscores) before passing to path.join,
+      // preventing null bytes or other special characters from reaching the call.
+      if (!/^[\w.\-]+$/.test(destFilename)) {
+        throw new Error('Invalid destination filename: only alphanumerics, dots, hyphens, and underscores are allowed');
+      }
       // Resolve the joined path immediately so any residual ".." segments are
       // neutralised before the boundary check.  The candidate must be strictly
       // *inside* resolvedDestDir (i.e. start with the dir + separator), never
