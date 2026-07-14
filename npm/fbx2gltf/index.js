@@ -77,10 +77,13 @@ function convert(srcFile, destFile, opts = []) {
       }
 
       let srcPath = fs.realpathSync(srcFile);
-      let destDir = fs.realpathSync(path.dirname(destFile));
-      // Normalise destDir to an absolute path so the traversal boundary check
-      // is reliable regardless of whether destDir ends with a separator or not.
-      const resolvedDestDir = path.resolve(destDir);
+      // Resolve the destination directory to a real, absolute path so any
+      // symlinks and ".." segments are fully expanded before we use it as a
+      // traversal boundary.  Using realpathSync here is intentional: it
+      // guarantees that destDir is a concrete, canonical directory path that
+      // cannot be manipulated via symbolic links or relative segments supplied
+      // in the user-provided destFile argument.
+      const resolvedDestDir = fs.realpathSync(path.resolve(path.dirname(destFile)));
       let destFilename = path.basename(destFile, path.extname(destFile)) + destExt;
       // Sanitize destFilename to strip any path separator characters that could
       // allow traversal components (e.g. "../") from being embedded in the filename.
