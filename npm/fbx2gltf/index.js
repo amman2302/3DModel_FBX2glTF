@@ -69,6 +69,9 @@ function convert(srcFile, destFile, opts = []) {
 
       let srcPath = fs.realpathSync(srcFile);
       let destDir = fs.realpathSync(path.dirname(destFile));
+      // Normalise destDir to an absolute path so the traversal boundary check
+      // is reliable regardless of whether destDir ends with a separator or not.
+      const resolvedDestDir = path.resolve(destDir);
       let destFilename = path.basename(destFile, path.extname(destFile)) + destExt;
       // Sanitize destFilename to strip any path separator characters that could
       // allow traversal components (e.g. "../") from being embedded in the filename.
@@ -76,8 +79,10 @@ function convert(srcFile, destFile, opts = []) {
       if (!destFilename || /^\.+$/.test(destFilename)) {
         throw new Error('Invalid destination filename: path traversal detected');
       }
-      let destPath = path.join(destDir, destFilename);
-      if (!path.resolve(destPath).startsWith(destDir + path.sep)) {
+      let destPath = path.join(resolvedDestDir, destFilename);
+      const resolvedDestPath = path.resolve(destPath);
+      if (resolvedDestPath !== resolvedDestDir &&
+          !resolvedDestPath.startsWith(resolvedDestDir + path.sep)) {
         throw new Error('Invalid destination path: path traversal detected');
       }
 
