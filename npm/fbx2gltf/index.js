@@ -39,18 +39,17 @@ function convert(srcFile, destFile, opts = []) {
         destExt = '.gltf'
 
         let srcFilename = path.basename(srcFile, path.extname(srcFile))
-        // Normalize then strip any path-separator characters and traversal
-        // components (e.g. "../") to prevent them from being embedded in the
-        // filename before path.join.
-        srcFilename = path.normalize(srcFilename).replace(/[/\\]/g, '')
-        if (!srcFilename || /^\.+$/.test(srcFilename) || srcFilename.includes('..')) {
-          throw new Error('Invalid source filename: path traversal detected')
+        // Allowlist validation: only permit safe filename characters
+        // (alphanumerics, dots, hyphens, underscores) to prevent path
+        // traversal components (e.g. "../", null bytes) from being embedded
+        // in the filename before path.join.
+        if (!srcFilename || !/^[\w.\-]+$/.test(srcFilename)) {
+          throw new Error('Invalid source filename: only alphanumerics, dots, hyphens, and underscores are allowed')
         }
         const resolvedDestDir = path.resolve(destFile)
-        // Resolve the candidate destination path and confirm it stays inside
-        // resolvedDestDir before accepting it — this is the primary traversal guard.
-        const candidateDestFile = path.resolve(resolvedDestDir, srcFilename + destExt)
-        if (!candidateDestFile.startsWith(resolvedDestDir + path.sep)) {
+        destFile = path.join(resolvedDestDir, srcFilename + destExt)
+        // Defence-in-depth: confirm the resolved path stays within destDir.
+        if (!path.resolve(destFile).startsWith(resolvedDestDir + path.sep)) {
           throw new Error('Invalid destination path: path traversal detected')
         }
         destFile = candidateDestFile
