@@ -57,13 +57,19 @@ function convert(srcFile, destFile, opts = []) {
 
       if (binary && destExt !== '.glb') {
         destExt = '.glb';
-      } else if (!binary && destExt === 'glb') {
+      } else if (!binary && destExt === '.glb') {
         opts.push('--binary');
       }
 
       let srcPath = fs.realpathSync(srcFile);
       let destDir = fs.realpathSync(path.dirname(destFile));
       let destFilename = path.basename(destFile, path.extname(destFile)) + destExt;
+      // Sanitize destFilename to strip any path separator characters that could
+      // allow traversal components (e.g. "../") from being embedded in the filename.
+      destFilename = destFilename.replace(/[/\\]/g, '');
+      if (!destFilename || /^\.+$/.test(destFilename)) {
+        throw new Error('Invalid destination filename: path traversal detected');
+      }
       let destPath = path.join(destDir, destFilename);
       if (!path.resolve(destPath).startsWith(destDir + path.sep)) {
         throw new Error('Invalid destination path: path traversal detected');
