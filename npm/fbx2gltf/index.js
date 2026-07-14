@@ -50,8 +50,16 @@ function convert(srcFile, destFile, opts = []) {
           throw new Error('Invalid source filename: only alphanumerics, dots, hyphens, and underscores are allowed')
         }
         // Step 3: Resolve the destination directory to an absolute path so the
-        // boundary check below is reliable.
+        // boundary check below is reliable.  Before trusting the resolved value
+        // as a boundary we verify it is contained within the process working
+        // directory, preventing an attacker from supplying a destFile such as
+        // "../../etc/passwd" that would shift the trusted base outside the
+        // intended tree and make the startsWith check below vacuously pass.
         const resolvedDestDir = path.resolve(destFile)
+        const allowedBase = path.resolve(process.cwd())
+        if (!resolvedDestDir.startsWith(allowedBase + path.sep) && resolvedDestDir !== allowedBase) {
+          throw new Error('Invalid destination path: path traversal outside working directory detected')
+        }
         // Step 4: Build the candidate path and immediately verify it is strictly
         // contained within resolvedDestDir.  Using path.resolve() on the joined
         // result neutralises any residual ".." segments, and the path.sep suffix
