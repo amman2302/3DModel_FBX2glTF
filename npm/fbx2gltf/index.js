@@ -38,7 +38,10 @@ function convert(srcFile, destFile, opts = []) {
       if (!destExt) {
         destExt = '.gltf'
 
-        const srcFilename = path.basename(path.basename(srcFile), path.extname(srcFile))
+        let srcFilename = path.basename(path.basename(srcFile), path.extname(srcFile))
+        // Strip any path-separator characters to prevent traversal components
+        // (e.g. "../") from being embedded in the filename before path.join.
+        srcFilename = srcFilename.replace(/[/\\]/g, '')
         if (!srcFilename || /^\.+$/.test(srcFilename)) {
           throw new Error('Invalid source filename: path traversal detected')
         }
