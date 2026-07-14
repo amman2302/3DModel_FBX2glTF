@@ -38,17 +38,22 @@ function convert(srcFile, destFile, opts = []) {
       if (!destExt) {
         destExt = '.gltf'
 
-        let srcFilename = path.basename(srcFile, path.extname(srcFile))
-        // Allowlist validation: only permit safe filename characters
+        // Step 1: path.basename() strips any directory components or path
+        // separators that may be embedded in the user-supplied srcFile value,
+        // then we further drop the extension to obtain a bare filename stem.
+        let srcFilename = path.basename(path.basename(srcFile), path.extname(srcFile))
+        // Step 2: Allowlist validation — only permit safe filename characters
         // (alphanumerics, dots, hyphens, underscores) to prevent path
         // traversal components (e.g. "../", null bytes) from being embedded
         // in the filename before path.join.
         if (!srcFilename || !/^[\w.\-]+$/.test(srcFilename)) {
           throw new Error('Invalid source filename: only alphanumerics, dots, hyphens, and underscores are allowed')
         }
+        // Step 3: Resolve the destination directory to an absolute path so the
+        // boundary check below is reliable.
         const resolvedDestDir = path.resolve(destFile)
         destFile = path.join(resolvedDestDir, srcFilename + destExt)
-        // Defence-in-depth: confirm the resolved path stays within destDir.
+        // Step 4: Defence-in-depth — confirm the resolved path stays within destDir.
         if (!path.resolve(destFile).startsWith(resolvedDestDir + path.sep)) {
           throw new Error('Invalid destination path: path traversal detected')
         }
