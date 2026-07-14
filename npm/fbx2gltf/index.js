@@ -39,7 +39,11 @@ function convert(srcFile, destFile, opts = []) {
         destExt = '.gltf'
 
         const srcFilename = path.basename(srcFile, path.extname(srcFile))
-        destFile = path.join(destFile, srcFilename + destExt)
+        const resolvedDestDir = path.resolve(destFile)
+        destFile = path.join(resolvedDestDir, srcFilename + destExt)
+        if (!path.resolve(destFile).startsWith(resolvedDestDir + path.sep)) {
+          throw new Error('Invalid destination path: path traversal detected')
+        }
       }
 
       if (destExt !== '.glb' && destExt !== '.gltf') {
