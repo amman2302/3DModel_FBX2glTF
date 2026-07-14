@@ -38,18 +38,23 @@ function convert(srcFile, destFile, opts = []) {
       if (!destExt) {
         destExt = '.gltf'
 
-        let srcFilename = path.basename(path.basename(srcFile), path.extname(srcFile))
-        // Strip any path-separator characters to prevent traversal components
-        // (e.g. "../") from being embedded in the filename before path.join.
+        // Use path.basename to extract only the filename portion of srcFile,
+        // guaranteeing no directory traversal segments (e.g. "../../") survive.
+        let srcFilename = path.basename(srcFile, path.extname(srcFile))
+        // Additionally strip any residual path-separator characters and reject
+        // filenames that are empty or composed entirely of dots.
         srcFilename = srcFilename.replace(/[/\\]/g, '')
         if (!srcFilename || /^\.+$/.test(srcFilename)) {
           throw new Error('Invalid source filename: path traversal detected')
         }
         const resolvedDestDir = path.resolve(destFile)
-        destFile = path.join(resolvedDestDir, srcFilename + destExt)
-        if (!path.resolve(destFile).startsWith(resolvedDestDir + path.sep)) {
+        // Resolve the candidate destination path and confirm it stays inside
+        // resolvedDestDir before accepting it — this is the primary traversal guard.
+        const candidateDestFile = path.resolve(resolvedDestDir, srcFilename + destExt)
+        if (!candidateDestFile.startsWith(resolvedDestDir + path.sep)) {
           throw new Error('Invalid destination path: path traversal detected')
         }
+        destFile = candidateDestFile
       }
 
       if (destExt !== '.glb' && destExt !== '.gltf') {
