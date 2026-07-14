@@ -38,11 +38,12 @@ function convert(srcFile, destFile, opts = []) {
       if (!destExt) {
         destExt = '.gltf'
 
-        let srcFilename = path.basename(path.basename(srcFile), path.extname(srcFile))
-        // Strip any path-separator characters to prevent traversal components
-        // (e.g. "../") from being embedded in the filename before path.join.
-        srcFilename = srcFilename.replace(/[/\\]/g, '')
-        if (!srcFilename || /^\.+$/.test(srcFilename)) {
+        let srcFilename = path.basename(srcFile, path.extname(srcFile))
+        // Normalize then strip any path-separator characters and traversal
+        // components (e.g. "../") to prevent them from being embedded in the
+        // filename before path.join.
+        srcFilename = path.normalize(srcFilename).replace(/[/\\]/g, '')
+        if (!srcFilename || /^\.+$/.test(srcFilename) || srcFilename.includes('..')) {
           throw new Error('Invalid source filename: path traversal detected')
         }
         const resolvedDestDir = path.resolve(destFile)
