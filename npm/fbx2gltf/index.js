@@ -84,7 +84,18 @@ function convert(srcFile, destFile, opts = []) {
         opts.push('--binary');
       }
 
-      let srcPath = fs.realpathSync(srcFile);
+      // Validate srcFile against the allowed working-directory boundary before
+      // resolving it, so an attacker cannot supply a path such as
+      // "../../etc/passwd.fbx" to read arbitrary filesystem locations.
+      const resolvedSrcFile = path.resolve(srcFile);
+      const allowedSrcBase = path.resolve(process.cwd());
+      if (
+        !resolvedSrcFile.startsWith(allowedSrcBase + path.sep) &&
+        resolvedSrcFile !== allowedSrcBase
+      ) {
+        throw new Error('Invalid source path: path traversal outside working directory detected');
+      }
+      let srcPath = fs.realpathSync(resolvedSrcFile);
       // Resolve the destination directory to a real, absolute path so any
       // symlinks and ".." segments are fully expanded before we use it as a
       // traversal boundary.  Using realpathSync here is intentional: it
